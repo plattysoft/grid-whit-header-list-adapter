@@ -1,6 +1,7 @@
 package com.plattysoft.ui;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -9,7 +10,7 @@ import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
 
 /**
- * Created by shalafi on 6/6/13.
+ * Created by shalafi on 11/23/13.
  */
 public abstract class GridViewWithHeaderBaseAdapter extends BaseAdapter {
 
@@ -71,23 +72,23 @@ public abstract class GridViewWithHeaderBaseAdapter extends BaseAdapter {
 	protected abstract View getItemView(int position, View view, ViewGroup parent);
 
 	@Override
-	public final View getView(int position, View view, ViewGroup viewGroup) {
+	public final View getView(int position, View convertView, ViewGroup parent) {
 		LinearLayout layout;
 		int columnWidth = 0;
-		if (viewGroup !=  null) {
-			columnWidth = viewGroup.getWidth()/mNumColumns;    		
+		if (parent !=  null) {
+			columnWidth = parent.getWidth()/mNumColumns;    		
 		}
-		else if (view != null) {
-			columnWidth = view.getWidth()/mNumColumns;;
+		else if (convertView != null) {
+			columnWidth = convertView.getWidth()/mNumColumns;
 		}
 		// Make it be rows of the number of columns
-		if (view == null) {
+		if (convertView == null) {
 			// This is items view
-			layout = createItemRow(position, viewGroup, columnWidth);            
+			layout = createItemRow(position, parent, columnWidth);            
 		}
 		else {
-			layout = (LinearLayout) view;
-			updateItemRow(position, viewGroup, layout, columnWidth);
+			layout = (LinearLayout) convertView;
+			updateItemRow(position, parent, layout, columnWidth);
 		}
 		return layout;
 	}
@@ -104,24 +105,24 @@ public abstract class GridViewWithHeaderBaseAdapter extends BaseAdapter {
 			if (currentPos < getItemCount()) {            		
 				insideView = getItemView(currentPos, null, viewGroup);            	
 				insideView.setVisibility(View.VISIBLE);
-				View theView = getItemView(currentPos, insideView, viewGroup);
-				theView.setOnClickListener(new ListItemClickListener (currentPos));				
+				insideView.setOnClickListener(new ListItemClickListener (currentPos));				
 			}
 			else {
 				insideView = new View(mContext);
 				insideView.setVisibility(View.INVISIBLE);
 			}            	
 			layout.addView(insideView);
-//			insideView.setBackgroundResource(android.R.drawable.list_selector_background);
+			
 			// Set the width of this column
 			LayoutParams params = insideView.getLayoutParams();
 			params.width = columnWidth;
+			params.height = columnWidth;
 			insideView.setLayoutParams(params);			
 		}
 		return layout;
 	}	
 
-	private void updateItemRow(int position, ViewGroup viewGroup, LinearLayout layout, int columnWidth) {
+	private void updateItemRow(int position, ViewGroup parent, LinearLayout layout, int columnWidth) {
 		for (int i=0; i<mNumColumns; i++) {
 			int currentPos = position * mNumColumns + i;
 			View insideView = layout.getChildAt(i);
@@ -137,12 +138,17 @@ public abstract class GridViewWithHeaderBaseAdapter extends BaseAdapter {
 
 			if (currentPos < getItemCount()) {
 				insideView.setVisibility(View.VISIBLE);
-				// Populate the view
-				View theView = getItemView(currentPos, insideView, viewGroup);
-				theView.setOnClickListener(new ListItemClickListener (currentPos));				
-				if (!theView.equals(insideView)) {
-					// DO NOT CHANGE THE VIEWS
+				// Populate the view, sometimes need to new one
+				View theView = new View(mContext);
+				if (insideView.getId() <= 0) {
+					theView = getItemView(currentPos, null, parent);
+					theView.setLayoutParams(params);
+					layout.addView(theView, i);
+					layout.removeView(insideView);
+				} else {
+					theView = getItemView(currentPos, insideView, parent);
 				}
+				theView.setOnClickListener(new ListItemClickListener (currentPos));				
 			}
 			else {
 				insideView.setVisibility(View.INVISIBLE);
